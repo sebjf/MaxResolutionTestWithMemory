@@ -1,0 +1,100 @@
+package memstream;
+
+import maxvideo.MaxVideoSignalKernel;
+import maxvideo.VideoCounter;
+
+import com.maxeler.maxcompiler.v2.managers.BuildConfig;
+import com.maxeler.maxcompiler.v2.managers.custom.CustomManager;
+import com.maxeler.maxcompiler.v2.managers.custom.DFELink;
+import com.maxeler.maxcompiler.v2.managers.custom.blocks.KernelBlock;
+import com.maxeler.maxcompiler.v2.managers.custom.stdlib.MemoryControlGroup.MemoryAccessPattern;
+import com.maxeler.maxcompiler.v2.managers.engine_interfaces.CPUTypes;
+import com.maxeler.maxcompiler.v2.managers.engine_interfaces.EngineInterface;
+import com.maxeler.maxcompiler.v2.managers.engine_interfaces.EngineInterface.Direction;
+import com.maxeler.maxcompiler.v2.managers.engine_interfaces.InterfaceParam;
+
+import displaystandards.DisplayStandard;
+
+public class MemStreamManager extends CustomManager {
+
+	private static final String s_kernelName = "MemStreamKernel";
+
+	public MemStreamManager(MemStreamEngineParameters engineParameters) {
+		super(engineParameters);
+
+		DisplayStandard displayStandard = DisplayStandard.make_RiftDK2();
+		VideoCounter.displayStandard = displayStandard;
+
+		config.setDefaultStreamClockFrequency(200);
+
+		KernelBlock block = addKernel(new MemStreamKernel(makeKernelParameters(s_kernelName)));
+
+		DFELink cpu2lmem = addStreamToOnCardMemory("cpu2lmem", MemoryAccessPattern.LINEAR_1D);
+		DFELink lmem2cpu = addStreamFromOnCardMemory("lmem2cpu", MemoryAccessPattern.LINEAR_1D);
+
+		cpu2lmem <== addStreamFromCPU("cpu_to_lmem");
+		addStreamToCPU("tocpu") <== lmem2cpu;
+
+		block.getInput("x") <== addStreamFromOnCardMemory("x", MemoryAccessPattern.LINEAR_1D);
+		block.getInput("y") <== addStreamFromCPU("y");
+		addStreamToCPU("s") <== block.getOutput("s");
+
+		createSLiCinterface(modeDefault());
+		createSLiCinterface(modeWrite("writeLMem"));
+
+		KernelBlock videoDataKernel = addKernel(new MaxResolutionTestKernel(makeKernelParameters("MaxResolutionTestKernel")));
+		KernelBlock videoSignalKernel = addKernel(new MaxVideoSignalKernel(makeKernelParameters("MaxVideoSignalKernel"), displayStandard));
+
+		videoSignalKernel.getInput("rgb").connect(videoDataKernel.getOutput("rgb"));
+	//	videoSignalKernel.getInput("HalfClockEnable").connect(videoDataKernel.getOutput("HalfClockEnable"));
+
+		getVideoStream("videoData", displayStandard.getDisplayClock()).connect(videoSignalKernel.getOutput("displayDataOut"));
+
+
+		configBuild(engineParameters);
+	}
+
+	private static EngineInterface modeWrite(String name) {
+		EngineInterface engine_interface = new EngineInterface(name);
+
+		InterfaceParam nbytes = engine_interface.addParam("nbytes", CPUTypes.INT);
+		InterfaceParam start = engine_interface.addParam("address", CPUTypes.INT);
+
+		engine_interface.setStream("cpu_to_lmem", CPUTypes.INT32, nbytes);
+		engine_interface.setLMemLinear("cpu2lmem", start * CPUTypes.INT32.sizeInBytes(), nbytes);
+		engine_interface.ignoreAll(Direction.IN_OUT);
+		return engine_interface;
+	}
+
+	private static EngineInterface modeDefault() {
+		EngineInterface engine_interface = new EngineInterface();
+		CPUTypes   type = CPUTypes.INT32;
+		int        size = type.sizeInBytes();
+
+		InterfaceParam  a    = engine_interface.addParam("A", CPUTypes.INT);
+		InterfaceParam  N    = engine_interface.addParam("N", CPUTypes.INT);
+		InterfaceParam  zero = engine_interface.addConstant(0l);
+
+		engine_interface.setTicks(s_kernelName, N);
+
+		engine_interface.setScalar(s_kernelName, "a", a);
+		engine_interface.setLMemLinear("x", zero, N * size);
+		engine_interface.setStream("y", type, N * size);
+		engine_interface.setStream("s", type, N * size);
+		engine_interface.ignoreAll(Direction.IN_OUT);
+		return engine_interface;
+	}
+
+	private void configBuild(MemStreamEngineParameters params) {
+		BuildConfig buildConfig = getBuildConfig();
+		buildConfig.setMPPRCostTableSearchRange(1, 4);
+		buildConfig.setMPPRParallelism(4);
+		buildConfig.setMPPRRetryNearMissesThreshold(params.getMPPRRetryThreshold());
+	}
+
+
+	public static void main(String[] args) {
+		MemStreamManager manager = new MemStreamManager(new MemStreamEngineParameters(args));
+		manager.build();
+	}
+}

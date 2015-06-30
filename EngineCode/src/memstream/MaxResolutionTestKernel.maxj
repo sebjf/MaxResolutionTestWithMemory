@@ -1,0 +1,55 @@
+package memstream;
+
+import maxvideo.VideoCounter;
+import maxvideo.VideoCounter.Scope;
+import types.uRGB;
+
+import com.maxeler.maxcompiler.v2.kernelcompiler.Kernel;
+import com.maxeler.maxcompiler.v2.kernelcompiler.KernelParameters;
+import com.maxeler.maxcompiler.v2.kernelcompiler.types.base.DFEVar;
+import com.maxeler.maxcompiler.v2.kernelcompiler.types.composite.DFEStruct;
+
+class MaxResolutionTestKernel extends Kernel {
+
+	protected MaxResolutionTestKernel(KernelParameters parameters) {
+		super(parameters);
+
+		flush.disabled();
+
+		VideoCounter counters = new VideoCounter(this, Scope.ActiveOnly);
+
+		DFEVar x = counters.x.cast(dfeUInt(16));
+		DFEVar y = counters.y.cast(dfeUInt(16));
+
+		DFEVar pattern = io.scalarInput("pattern", dfeUInt(8));
+
+		DFEVar r = io.scalarInput("r", dfeUInt(8));
+		DFEVar g = io.scalarInput("g", dfeUInt(8));
+		DFEVar b = io.scalarInput("b", dfeUInt(8));
+
+		/* Pattern x writes a constant colour to the screen  */
+
+		uRGB defaultpattern = new uRGB(r,g,b);
+		DFEStruct rgb = defaultpattern.getDFEStruct();
+
+		/* Pattern 1 writes a random value for each pixel (timing signals are vesa compliant) */
+
+		//
+
+		/* Pattern 2 writes a random value for each pixel (no timing) */
+
+		//
+
+		/* Pattern 3 writes the half clock pattern to the outputs */
+
+		/* When enabled half clock alternates between writing 0x3FF or 0x0 to the data channels */
+/*		io.output("HalfClockEnable", dfeBool()) <== (pattern === 3);
+		rgb = (pattern === 3) ?
+				((KernelMath.modulo(x, 2) > 0) ? uRGB.White(this).getDFEStruct() : uRGB.Black(this).getDFEStruct() )
+				: rgb; */
+
+
+		io.output("rgb", uRGB.getDFEStructType()) <== rgb;
+	}
+
+}
