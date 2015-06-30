@@ -57,7 +57,7 @@ RunRules/Simulation/maxfiles/
 RunRules/Simulation/binaries/
 RunRules/Simulation/objects/
 RunRules/DFE/objects/
-RunRules/DFE/maxfiles/
+RunRules/DFE/maxfiles/*BUILD
 RunRules/Simulation/maxfiles/EnvironmentMapPlayer-BUILD
 RunRules/Simulation/maxfiles/*
 RunRules/Simulation/debug*
