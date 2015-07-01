@@ -27,12 +27,11 @@ int main(void)
 	max_actions_t* act = max_actions_init(maxfile, "writeLMem");
 	max_set_param_uint64t(act, "address", 0);
 	max_set_param_uint64t(act, "nbytes", sizeBytes);
-
-	max_ignore_kernel(act, "MaxResolutionTest");
-
-
 	max_queue_input(act, "cpu_to_lmem", x, size * sizeof(uint32_t));
+	//max_ignore_kernel("MaxResolutionTest");
 	max_run(engine, act);
+
+
 
 	printf("Running on DFE.\n");
 	act = max_actions_init(maxfile, "default");
