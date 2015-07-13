@@ -53,15 +53,9 @@ hs_err_pid*
 *.be
 *.mxru
 
-RunRules/Simulation/maxfiles/
-RunRules/Simulation/binaries/
-RunRules/Simulation/objects/
+RunRules/Simulation/
 RunRules/DFE/objects/
 RunRules/DFE/maxfiles/*BUILD
-RunRules/Simulation/maxfiles/EnvironmentMapPlayer-BUILD
-RunRules/Simulation/maxfiles/*
-RunRules/Simulation/debug*
 RunRules/DFE/*.png
-RunRules/Simulation/*.png
 EngineCode/bin/
 *.dot
